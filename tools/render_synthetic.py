@@ -38,7 +38,7 @@ Dumper.add_representer(str, SafeRepresenter.represent_str)
 # custom libs
 import _init_paths
 from global_info import global_info
-from lib.data_utils import get_model_pts, get_urdf
+from lib.data_utils import get_model_pts, get_urdf, get_urdf_mobility
 
 # Step through simulation time
 def step_simulation():
@@ -77,11 +77,11 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
     if not _WRITE_FLAG:
         camInfo  = pybullet.getDebugVisualizerCamera()
 
-    tree_urdf = ET.parse("{}/{}/syn.urdf".format(path_urdf, cur_urdf))
-    root      = tree_urdf.getroot()
+    # tree_urdf = ET.parse("{}/{}/syn.urdf".format(path_urdf, cur_urdf))
+    # root      = tree_urdf.getroot()
 
     num_joints = 0
-    num_joints = len(os.listdir("{}/{}/".format(path_urdf, cur_urdf))) -2
+    num_joints = len(os.listdir("{}/{}/".format(path_urdf, cur_urdf))) - 4
 
     obj_parts = []
     pybullet.setGravity(0, 0, -10)
@@ -100,7 +100,7 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
     simu_cnt   = 0
     main_start = time.time()
 
-    urdf_ins   = get_urdf("{}/{}".format(path_urdf, cur_urdf))
+    urdf_ins   = get_urdf_mobility("{}/{}".format(path_urdf, cur_urdf))
     num_joints = len(urdf_ins['obj_name']) -1
 
     # instance-wise offset for camera distance
@@ -159,78 +159,96 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
 
         img_id = 0
         lastTime = time.time()
-        view_num = 100
-        pitch_choices = pitch_low + (pitch_high - pitch_low) *np.random.rand(view_num)
-        yaw_choices   = yaw_low   + (yaw_high - yaw_low) * np.random.rand(view_num)
-        for i in range(view_num):
-            pitch = pitch_choices[i]
-            yaw   = yaw_choices[i]
-            if(img_id < RENDER_NUM and _RENDER_FLAG):
-                camTargetPos = 0.8 * min_dis * (np.random.rand(3) - 0.5) + center_pts[0]
-                nowTime = time.time()
-                offset                 = rdn_offset[simu_cnt, img_id]
-                lightDirection         = lightDirectionArray[simu_cnt, img_id, :]
-                lightDistance          = lightDistanceArray[simu_cnt, img_id]
-                lightColor             = list(lightColorArray[simu_cnt, img_id, :])
-                lightAmbientCoeff      = lightAmbientCoeffArray[simu_cnt, img_id]
-                lightDiffuseCoeff      = lightDiffuseCoeffArray[simu_cnt, img_id]
-                lightSpecularCoeff     = lightSpecularCoeffArray[simu_cnt, img_id]
+        # view_num = 100
+        # pitch_choices = pitch_low + (pitch_high - pitch_low) *np.random.rand(view_num)
+        # yaw_choices   = yaw_low   + (yaw_high - yaw_low) * np.random.rand(view_num)
+        for i in range(RENDER_NUM):
+            flag = True
+            while flag:
+                # pitch = pitch_choices[i]
+                # yaw   = yaw_choices[i]
+                # Adjust codes to promise the mask contains all labels
+                pitch = pitch_low + (pitch_high - pitch_low) * np.random.rand(1)[0]
+                yaw = yaw_low   + (yaw_high - yaw_low) * np.random.rand(1)[0]
+                if(img_id < RENDER_NUM and _RENDER_FLAG):
+                    camTargetPos = 0.8 * min_dis * (np.random.rand(3) - 0.5) + center_pts[0]
+                    nowTime = time.time()
+                    offset                 = rdn_offset[simu_cnt, img_id]
+                    lightDirection         = lightDirectionArray[simu_cnt, img_id, :]
+                    lightDistance          = lightDistanceArray[simu_cnt, img_id]
+                    lightColor             = list(lightColorArray[simu_cnt, img_id, :])
+                    lightAmbientCoeff      = lightAmbientCoeffArray[simu_cnt, img_id]
+                    lightDiffuseCoeff      = lightDiffuseCoeffArray[simu_cnt, img_id]
+                    lightSpecularCoeff     = lightSpecularCoeffArray[simu_cnt, img_id]
 
-                camDistance_final      = min_dis * 2.8 + offset # [1.6, 2.6] * min_dis
-                viewMatrix             = pybullet.computeViewMatrixFromYawPitchRoll(camTargetPos[0], camDistance_final, yaw, pitch, roll, upAxisIndex)
-                aspect                 = pixelWidth / pixelHeight
-                projectionMatrix       = pybullet.computeProjectionMatrixFOV(fov, aspect, nearPlane, farPlane)
-                img_arr = pybullet.getCameraImage(pixelWidth, pixelHeight, viewMatrix, projectionMatrix, lightDirection=lightDirection,\
-                                                  renderer= pybullet.ER_BULLET_HARDWARE_OPENGL)
+                    camDistance_final      = min_dis * 2.8 + offset # [1.6, 2.6] * min_dis
+                    viewMatrix             = pybullet.computeViewMatrixFromYawPitchRoll(camTargetPos[0], camDistance_final, yaw, pitch, roll, upAxisIndex)
+                    aspect                 = pixelWidth / pixelHeight
+                    projectionMatrix       = pybullet.computeProjectionMatrixFOV(fov, aspect, nearPlane, farPlane)
+                    img_arr = pybullet.getCameraImage(pixelWidth, pixelHeight, viewMatrix, projectionMatrix, lightDirection=lightDirection,\
+                                                    renderer= pybullet.ER_BULLET_HARDWARE_OPENGL)
 
-                w         = img_arr[0]
-                h         = img_arr[1]
-                rgb       = img_arr[2]
-                depth_raw = img_arr[3].astype(np.float32)
-                mask      = img_arr[4]
-                depth     = 255.0 * nearPlane / (farPlane - (farPlane - nearPlane) * depth_raw) # *farPlane/255.0
-                far       = farPlane
-                near      = nearPlane
-                depth_to_save = 2.0 * far * near / (far  + near - (far - near) * (2 * depth_raw - 1.0))
+                    w         = img_arr[0]
+                    h         = img_arr[1]
+                    rgb       = img_arr[2]
+                    depth_raw = img_arr[3].astype(np.float32)
+                    mask      = img_arr[4]
+                    depth     = 255.0 * nearPlane / (farPlane - (farPlane - nearPlane) * depth_raw) # *farPlane/255.0
+                    far       = farPlane
+                    near      = nearPlane
+                    depth_to_save = 2.0 * far * near / (far  + near - (far - near) * (2 * depth_raw - 1.0))
 
-                np_rgb_arr  = np.reshape(rgb, (h, w, 4))[:, :, :3]
-                np_depth_arr= np.reshape(depth, (h, w, 1))
-                np_mask_arr = (np.reshape(mask, (h, w, 1))).astype(np.uint8)
-                image_path  = save_path + '/{}/{}'.format(cur_urdf, simu_cnt)
+                    np_rgb_arr  = np.reshape(rgb, (h, w, 4))[:, :, :3]
+                    np_rgb_arr = cv2.cvtColor(np_rgb_arr, cv2.COLOR_RGB2BGR)
+                    np_depth_arr= np.reshape(depth, (h, w, 1))
+                    np_mask_arr = (np.reshape(mask, (h, w, 1))).astype(np.uint8)
 
-                rgb_name   = image_path + '/rgb/{0:06d}.png'.format(img_id)
-                depth_img_name   = image_path + '/depth/{0:06d}.png'.format(img_id)
-                depth_name   = image_path + '/depth/{0:06d}.h5'.format(img_id)
-                mask_name  = image_path + '/mask/{0:06d}.png'.format(img_id)
+                    check_mask = True
 
-                if i == 0:
-                    joint_pos = OrderedDict()
-                    for joint in range(pybullet.getNumJoints(obj_parts[0])):
-                        lstate = pybullet.getLinkState(obj_parts[0], linkIndex=joint, computeForwardKinematics=True)
-                        joint_pos[joint] = OrderedDict(
-                                            [(0, list(lstate[0])),
-                                             (1, list(lstate[1])),
-                                             (2, list(lstate[2])),
-                                             (3, list(lstate[3])),
-                                             (4, list(lstate[4])),
-                                             (5, list(lstate[5]))]
-                        )
-                        # print('Joint {} lstate under {} : \n'.format(joint, steeringAngleArray[simu_cnt, :]), lstate[4:6])
+                    num_parts = num_joints + 1
+                    # breakpoint()
+                    
+                    for c in range(1, num_parts):
+                        if np.sum(np_mask_arr == c) < 10:
+                            check_mask = False
+                            break
 
-                if _WRITE_FLAG is True:
-                    cv2.imwrite(rgb_name, np_rgb_arr)
-                    cv2.imwrite(depth_img_name, np_depth_arr)
-                    cv2.imwrite(mask_name, np_mask_arr)
-                    hf = h5py.File(depth_name, 'w')
-                    hf.create_dataset('data', data=depth_to_save)
-                yml_dict['frame_{}'.format(img_id)] = OrderedDict( [ ('obj', joint_pos),
-                                                  ('viewMat', list(viewMatrix)),
-                                                  ('projMat', list(projectionMatrix))
-                                                  ])
-                if not _WRITE_FLAG:
-                    time.sleep(1)
-                img_id+=1
-                lastTime = nowTime
+                    if check_mask == True:
+                        flag = False
+                        image_path  = save_path + '/{}/{}'.format(cur_urdf, simu_cnt)
+                        rgb_name   = image_path + '/rgb/{0:06d}.png'.format(img_id)
+                        depth_img_name   = image_path + '/depth/{0:06d}.png'.format(img_id)
+                        depth_name   = image_path + '/depth/{0:06d}.h5'.format(img_id)
+                        mask_name  = image_path + '/mask/{0:06d}.png'.format(img_id)
+
+                        if i == 0:
+                            joint_pos = OrderedDict()
+                            for joint in range(pybullet.getNumJoints(obj_parts[0])):
+                                lstate = pybullet.getLinkState(obj_parts[0], linkIndex=joint, computeForwardKinematics=True)
+                                joint_pos[joint] = OrderedDict(
+                                                    [(0, list(lstate[0])),
+                                                    (1, list(lstate[1])),
+                                                    (2, list(lstate[2])),
+                                                    (3, list(lstate[3])),
+                                                    (4, list(lstate[4])),
+                                                    (5, list(lstate[5]))]
+                                )
+                                # print('Joint {} lstate under {} : \n'.format(joint, steeringAngleArray[simu_cnt, :]), lstate[4:6])
+
+                        if _WRITE_FLAG is True:
+                            cv2.imwrite(rgb_name, np_rgb_arr)
+                            cv2.imwrite(depth_img_name, np_depth_arr)
+                            cv2.imwrite(mask_name, np_mask_arr)
+                            hf = h5py.File(depth_name, 'w')
+                            hf.create_dataset('data', data=depth_to_save)
+                        yml_dict['frame_{}'.format(img_id)] = OrderedDict( [ ('obj', joint_pos),
+                                                        ('viewMat', list(viewMatrix)),
+                                                        ('projMat', list(projectionMatrix))
+                                                        ])
+                        if not _WRITE_FLAG:
+                            time.sleep(1)
+                        img_id+=1
+                        lastTime = nowTime
 
         if _WRITE_FLAG:
             with open(yml_file, 'w') as f:
@@ -246,6 +264,7 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
 
 if __name__ == "__main__":
     #>>>>>>>>>>>>>>>>>>>>>>>>>> config regions >>>>>>>>>>>>>>>>>>>>>>>>#
+    start = time.time()
     infos     = global_info()
     my_dir    = infos.base_path
 
@@ -255,7 +274,7 @@ if __name__ == "__main__":
     parser.add_argument('--item', default='eyeglasses', help='name of category we use')
     parser.add_argument('--dis',   default=3, help='default camera2object distance')
     parser.add_argument('--mode',  default='train', help='mode decides saving folder:train/demo')
-    parser.add_argument('--roll', default='30,40', help='camera view angle', required=True)
+    parser.add_argument('--roll', default='30,40', help='camera view angle', required=False)
     parser.add_argument('--pitch', default='30,40', help='camera view angle', required=True)
     parser.add_argument('--yaw',  default='30,40', help='camera view angle', required=True)
     parser.add_argument('--min_angles',  default='30,40,50', help='minimum joint angles', required=True)
@@ -302,3 +321,5 @@ if __name__ == "__main__":
     else:
         for instance in all_ins: #todo
             render_data(data_root, args.item, instance, cam_dis=cam_dis, args=args,  _WRITE_FLAG=_WRITE, _RENDER_FLAG=_RENDER, _CREATE_FOLDER=_CREATE, RENDER_NUM=num_render, ARTIC_CNT=cnt_artic, _USE_GUI=_USE_GUI, _IS_DUBUG=is_debug)
+    stop = time.time()
+    print(str(stop - start) + " seconds")

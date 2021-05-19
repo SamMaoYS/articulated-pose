@@ -189,8 +189,8 @@ class global_info(object):
         # model/: put all training profiles & checkpoints;
         # results/: put network raw predictions + pose estimation results + error evaluation results;
         # dataset/: all data we use
-        self.base_path = '/work/cascades/lxiaol9/6DPOSE'
-        self.group_path= './' # useful when we have additional dataset;
+        self.base_path = '/home/sam/Development/articulated-pose'
+        self.group_path= self.base_path # useful when we have additional dataset;
 
 if __name__ == '__main__':
     infos = global_info()

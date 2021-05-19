@@ -176,7 +176,7 @@ class Dataset:
             offsets     = None
             for item in all_items:
                 if self.name_dset == 'sapien':
-                    path_urdf = self.root_dir + '/objects/' + '/' + obj_category + '/' + item
+                    path_urdf = self.root_dir + '/urdf/' + '/' + obj_category + '/' + item
                     urdf_ins   = get_urdf_mobility(path_urdf)
                 elif self.name_dset == 'shape2motion':
                     path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
@@ -233,7 +233,7 @@ class Dataset:
                 path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
                 urdf_ins   = get_urdf("{}/{}".format(path_urdf, item))
             elif self.name_dset == 'sapien':
-                path_urdf = self.root_dir + '/objects/' + '/' + obj_category + '/' + item
+                path_urdf = self.root_dir + '/urdf/' + '/' + obj_category + '/' + item
                 urdf_ins   = get_urdf_mobility(path_urdf)
             else:
                 path_urdf = self.root_dir + '/urdf/' + '/' + obj_category

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-CUDA_DIR=/opt/apps/cuda/9.0.176/
-CONDA_ENV_DIR=~/anaconda3/envs/dlubu36/
+CUDA_DIR=/usr/local/cuda
+CONDA_ENV_DIR=/home/sam/anaconda3/envs/ansch
 nvcc_bin=$CUDA_DIR/bin/nvcc
 
 cuda_include_dir=$CUDA_DIR/include

@@ -218,8 +218,8 @@ class Network(object):
                     print('Done saving model at step {:d}.'.format(step))
 
         train_writer.close()
-        val1_writer.close()
-        val2_writer.close()
+        val_writer1.close()
+        val_writer2.close()
         elapsed_min = (time.time() - start_time) / 60
         print('Training finished.')
         print('Elapsed: {:.2f}m.'.format(elapsed_min))

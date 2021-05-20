@@ -10,6 +10,7 @@ from network_config import NetworkConfig
 from network import Network
 from dataset import Dataset
 from global_info import global_info
+import time
 
 # >>>>>>>>>>>>>>>>>> python lib
 import tensorflow as tf
@@ -41,6 +42,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_mode", default="test", help="how to split and choose data"
     )
+    parser.add_argument("--gen", action="store_true", help="to split the dataset")
 
     # control model architecture
     parser.add_argument(
@@ -146,7 +148,8 @@ if __name__ == "__main__":
         if is_debug:
             data_pts = train_data.fetch_data_at_index(1)
             print(data_pts)
-
+        is_gen = True if args.gen else False
+        start = time.time()
         if is_testing:
             # batch testing
             print("Entering testing mode using test set")
@@ -163,6 +166,7 @@ if __name__ == "__main__":
                 fixed_order=True,
                 first_n=conf.get_train_data_first_n(),
                 is_debug=is_debug,
+                is_gen=is_gen,
             )
             if args.data_mode == "demo":
                 save_dir = conf.get_demo_prediction_dir()
@@ -188,6 +192,7 @@ if __name__ == "__main__":
                 fixed_order=False,
                 first_n=conf.get_train_data_first_n(),
                 is_debug=is_debug,
+                is_gen=is_gen,
             )
 
             # seen instances
@@ -205,6 +210,7 @@ if __name__ == "__main__":
                 fixed_order=True,
                 first_n=conf.get_val_data_first_n(),
                 is_debug=is_debug,
+                is_gen=is_gen,
             )
 
             # unseen instances
@@ -222,15 +228,18 @@ if __name__ == "__main__":
                 fixed_order=True,
                 first_n=conf.get_val_data_first_n(),
                 is_debug=is_debug,
+                is_gen=is_gen,
             )
 
             net.train(
                 sess,
                 train_data=train_data,
-                vals_data=[val1_data, val2_data],
+                vals_data=[val1_data],
                 n_epochs=conf.get_n_epochs(),
                 val_interval=conf.get_val_interval(),
                 snapshot_interval=conf.get_snapshot_interval(),
                 model_dir=conf.get_out_model_dir(),
                 log_dir=conf.get_log_dir(),
             )
+        stop = time.time()
+        print(str(stop - start) + " seconds")

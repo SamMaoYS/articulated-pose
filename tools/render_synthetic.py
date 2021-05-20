@@ -105,6 +105,7 @@ def render_data(
     num_joints = len(os.listdir("{}/{}/".format(path_urdf, cur_urdf))) - 4
 
     obj_parts = []
+    joint_indices = []
     pybullet.setGravity(0, 0, -10)
 
     for i in range(num_joints + 1):  #
@@ -122,7 +123,8 @@ def render_data(
                     targetVelocity=0,
                     force=0,
                 )
-                pybullet.getJointInfo(obj_parts[i], joint)
+                joint_idx = int(pybullet.getJointInfo(obj_parts[i], joint)[1].decode("utf-8").split('_')[-1])
+                joint_indices.append(joint_idx)
 
     simu_cnt = 0
     main_start = time.time()
@@ -317,10 +319,10 @@ def render_data(
                             for joint in range(pybullet.getNumJoints(obj_parts[0])):
                                 lstate = pybullet.getLinkState(
                                     obj_parts[0],
-                                    linkIndex=joint,
+                                    linkIndex= joint,
                                     computeForwardKinematics=True,
                                 )
-                                joint_pos[joint] = OrderedDict(
+                                joint_pos[joint_indices[joint]] = OrderedDict(
                                     [
                                         (0, list(lstate[0])),
                                         (1, list(lstate[1])),

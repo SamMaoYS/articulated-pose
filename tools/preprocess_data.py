@@ -23,6 +23,8 @@ from collections import OrderedDict
 from yaml import CLoader as Loader, CDumper as Dumper
 from yaml.representer import SafeRepresenter
 
+import pdb
+
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 
@@ -168,8 +170,7 @@ class PoseDataset:
         if not os.path.exists(h5_save_path):
             os.makedirs(h5_save_path)
         h5_save_name = h5_save_path + "/{}.h5".format(frame_order)
-        num_parts = self.urdf_dict[obj_category][ins]["num_links"]
-        num_parts = num_parts - 1
+        num_parts = self.urdf_dict[obj_category][ins]["num_links"] - 1
 
         model_offsets = self.urdf_dict[obj_category][ins]["link"]
         joint_offsets = self.urdf_dict[obj_category][ins]["joint"]
@@ -215,8 +216,6 @@ class PoseDataset:
         viewMat = np.array(pose_dict["viewMat"]).reshape(4, 4).T
         projMat = np.array(pose_dict["projMat"]).reshape(4, 4).T
 
-        parts_world_pos[0] = np.array([0, 0, 0])
-        parts_world_orn[0] = np.array([0, 0, 0, 1])
         for link in range(num_parts):
             parts_world_pos[link] = np.array(pose_dict["obj"][link][4]).astype(
                 np.float32
@@ -226,13 +225,13 @@ class PoseDataset:
             )
 
         for link in range(num_parts):
-            if link == 0 and num_parts == 1:
-                parts_urdf_pos[link+1] = np.array(
-                    urdf_dict["joint"]["xyz"][link]
+            if link == 1 and num_parts == 2:
+                parts_urdf_pos[link] = np.array(
+                    urdf_dict["joint"]["xyz"][link + 1]
                 )  # todo, accumulate joints pffsets != link offsets
             else:
-                parts_urdf_pos[link] = -np.array(urdf_dict["link"]["xyz"][link+1][0])
-            parts_urdf_orn[link] = np.array(urdf_dict["link"]["rpy"][link+1][0])
+                parts_urdf_pos[link] = -np.array(urdf_dict["link"]["xyz"][link + 1][0])
+            parts_urdf_orn[link] = np.array(urdf_dict["link"]["rpy"][link + 1][0])
 
         for k in range(num_parts):
             center_world_orn = parts_world_orn[k]
@@ -257,10 +256,12 @@ class PoseDataset:
             parts_model2world[k] = my_model2world_mat
 
         # depth to cloud data
-        mask = np.array((label[:, :] < num_parts) & (label[:, :] > -1)).astype(np.uint8)
+        mask = np.array((label[:, :] < num_parts + 1) & (label[:, :] > 0)).astype(
+            np.uint8
+        )
         mask_whole = np.copy(mask)
         for n in range(num_parts):
-            parts_mask[n] = np.array((label[:, :] == (n+1))).astype(np.uint8)
+            parts_mask[n] = np.array((label[:, :] == (n + 1))).astype(np.uint8)
             choose_to_whole[n] = np.where(parts_mask[n] > 0)
 
         # >>>>>>>>>>------- rendering target pcloud from depth image --------<<<<<<<<<#
@@ -405,24 +406,40 @@ class PoseDataset:
             plt.imshow(depth)
             plt.title("depth image")
             plt.show()
+            parts_cloud_cam[0] = parts_cloud_cam[0][::50, :]
+            parts_cloud_cam[1] = parts_cloud_cam[1][::50, :]
+            parts_cloud_cam[2] = parts_cloud_cam[2][::50, :]
+            parts_cloud_cam[3] = parts_cloud_cam[3][::50, :]
             plot3d_pts(
                 [parts_cloud_cam],
                 [["part {}".format(i) for i in range(len(parts_cloud_cam))]],
                 s=5,
                 title_name=["camera coords"],
             )
+            parts_cloud_world[0] = parts_cloud_world[0][::50, :]
+            parts_cloud_world[1] = parts_cloud_world[1][::50, :]
+            parts_cloud_world[2] = parts_cloud_world[2][::50, :]
+            parts_cloud_world[3] = parts_cloud_world[3][::50, :]
             plot3d_pts(
                 [parts_cloud_world],
                 [["part {}".format(i) for i in range(len(parts_cloud_world))]],
                 s=5,
                 title_name=["world coords"],
             )
+            parts_cloud_canon[0] = parts_cloud_canon[0][::50, :]
+            parts_cloud_canon[1] = parts_cloud_canon[1][::50, :]
+            parts_cloud_canon[2] = parts_cloud_canon[2][::50, :]
+            parts_cloud_canon[3] = parts_cloud_canon[3][::50, :]
             plot3d_pts(
                 [parts_cloud_canon],
                 [["part {}".format(i) for i in range(len(parts_cloud_canon))]],
                 s=5,
                 title_name=["canon coords"],
             )
+            parts_cloud_urdf[0] = parts_cloud_urdf[0][::50, :]
+            parts_cloud_urdf[1] = parts_cloud_urdf[1][::50, :]
+            parts_cloud_urdf[2] = parts_cloud_urdf[2][::50, :]
+            parts_cloud_urdf[3] = parts_cloud_urdf[3][::50, :]
             plot3d_pts(
                 [parts_cloud_urdf],
                 [["part {}".format(i) for i in range(len(parts_cloud_urdf))]],

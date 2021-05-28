@@ -239,7 +239,7 @@ if __name__ == "__main__":
         all_test_h5, unseen_instances, domain=args.domain, spec_instances=special_ins
     )
 
-    file_name = my_dir + "/results/test_pred/pickle{}/{}_{}_{}_rt_pn.pkl".format(
+    file_name = my_dir + "/results/pickle/{}/{}_{}_{}_rt_pn.pkl".format(
         save_exp, args.domain, args.nocs, args.item
     )
 
@@ -261,11 +261,13 @@ if __name__ == "__main__":
     for i in range(len(test_group)):
         try:
             print("\n Checking {}th data point: {}".format(i, test_group[i]))
-            if test_group[i][0:4] in problem_ins:
-                print("\n")
-                continue
+            # if test_group[i][0:4] in problem_ins:
+            #     print("\n")
+            #     continue
             basename = test_group[i].split(".")[0]
             rts_dict = rts_all[basename]
+            import pdb
+            pdb.set_trace()
             scale_gt = rts_dict["scale"]["gt"]  # list of 2, for part 0 and part 1
             rt_gt = rts_dict["rt"][
                 "gt"

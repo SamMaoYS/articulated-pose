@@ -228,13 +228,13 @@ if __name__ == "__main__":
                 fixed_order=True,
                 first_n=conf.get_val_data_first_n(),
                 is_debug=is_debug,
-                is_gen=is_gen,
+                # is_gen=is_gen,
             )
 
             net.train(
                 sess,
                 train_data=train_data,
-                vals_data=[val1_data],
+                vals_data=[val1_data, val2_data],
                 n_epochs=conf.get_n_epochs(),
                 val_interval=conf.get_val_interval(),
                 snapshot_interval=conf.get_snapshot_interval(),

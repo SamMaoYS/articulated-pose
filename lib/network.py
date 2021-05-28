@@ -198,6 +198,8 @@ class Network(object):
                     msg = 'Epoch: {:d} | Step: {:d}'.format(epoch, step)
                     remain_min = (n_epochs * train_data.n_data - step) * elapsed_min / step
                     for i, val_data in enumerate(vals_data):
+                        # import pdb
+                        # pdb.set_trace()
                         predict_result = self.predict_and_save(sess, val_data, save_dir=os.path.join(self.config.get_val_prediction_dir(), 'step{}'.format(step)))
                         msg = predict_result['msg']
                         msg = 'Validation: ' + msg + ' | Elapsed: {:.2f}m, Remaining: {:.2f}m'.format(elapsed_min, remain_min)

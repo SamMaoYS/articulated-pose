@@ -42,6 +42,8 @@ if __name__ == "__main__":
     num_parts = dset_info.num_parts
     num_ins = dset_info.num_object
     unseen_instances = dset_info.test_list
+    # import pdb
+    # pdb.set_trace()
     special_ins = dset_info.spec_list
     main_exp = dset_info.exp
     baseline_exp = dset_info.baseline

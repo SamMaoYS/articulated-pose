@@ -279,7 +279,10 @@ def solver_ransac_nonlinear(
     rts_all,
     file_name,
 ):
-    USE_BASELINE = True
+    if s_ind >= e_ind:
+        return
+    USE_BASELINE = False
+
     all_rts = {}
     mean_err = {"baseline": [], "nonlinear": []}
     if num_parts == 2:
@@ -312,23 +315,23 @@ def solver_ransac_nonlinear(
         rt_gt = rts_dict["rt"][
             "gt"
         ]  # list of 2, each is 4*4 Hom transformation mat, [:3, :3] is rotation
-        nocs_err_pn = rts_dict["nocs_err"]
+        # nocs_err_pn = rts_dict["nocs_err"]
         f = h5py.File(
             my_dir + "/results/test_pred/{}/{}.h5".format(test_exp, basename), "r"
         )
-        fb = h5py.File(
-            my_dir + "/results/test_pred/{}/{}.h5".format(baseline_exp, basename), "r"
-        )
+        # fb = h5py.File(
+        #     my_dir + "/results/test_pred/{}/{}.h5".format(baseline_exp, basename), "r"
+        # )
         print("using part nocs prediction")
         nocs_pred = f["nocs_per_point"]
         nocs_gt = f["nocs_gt"]
         mask_pred = f["instance_per_point"][()]
         joint_cls_gt = f["joint_cls_gt"][()]
-        if USE_BASELINE:
-            print("using baseline part NOCS")
-            nocs_pred = fb["nocs_per_point"]
-            nocs_gt = fb["nocs_gt"]
-            mask_pred = fb["instance_per_point"][()]
+        # if USE_BASELINE:
+        #     print("using baseline part NOCS")
+        #     nocs_pred = fb["nocs_per_point"]
+        #     nocs_gt = fb["nocs_gt"]
+        #     mask_pred = fb["instance_per_point"][()]
         mask_gt = f["cls_gt"][()]
         cls_per_pt_pred = np.argmax(mask_pred, axis=1)
 
@@ -350,7 +353,7 @@ def solver_ransac_nonlinear(
         rpy_err = {"baseline": [], "nonlinear": []}
         scale_err = {"baseline": [], "nonlinear": []}
 
-        for j in range(num_parts):
+        for j in range(0):
             source0 = nocs_pred[partidx[j], 3 * j : 3 * (j + 1)]
             target0 = f["P"][partidx[j], :3]
 
@@ -498,12 +501,12 @@ def solver_ransac_nonlinear(
         t_err_nonl[np.where(np.isnan(t_err_nonl))] = 0
         print(
             "mean rotation err of part {}: \n".format(j),
-            "baseline: {}".format(r_err_base.mean()),
+            "baseline: {}".format(-1),
             "nonlin: {}".format(r_err_nonl.mean()),
         )  #
         print(
             "mean translation err of part {}: \n".format(j),
-            "baseline: {}".format(t_err_base.mean()),
+            "baseline: {}".format(-1),
             "nonlin: {}".format(t_err_nonl.mean()),
         )  #
     end_time = time.time()

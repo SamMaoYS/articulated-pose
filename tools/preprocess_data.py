@@ -477,7 +477,7 @@ if __name__ == "__main__":
     root_dset = my_dir + "/dataset/" + name_dataset
     selected_list = infos.datasets[
         item
-    ].train_list  # default None, if specifies, will only choose specified instances
+    ].train_list   # default None, if specifies, will only choose specified instances
     # >>>>>>>>>>>>>>>>>>>>>>>>> config end here >>>>>>>>>>>>>>>>>>>#
 
     # 1. collect filenames into all.txt, then create dataset object
@@ -487,7 +487,7 @@ if __name__ == "__main__":
         item,
         is_debug=args.debug,
         mode=args.mode,
-        selected_list=selected_list,
+        selected_list=None,
     )
     print("number of images: ", len(PoseData.list_rgb))
 

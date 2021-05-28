@@ -948,7 +948,6 @@ def get_full_test(all_test_h5, unseen_instances, domain='seen', spec_instances=[
             unseen_test_h5.append(test_h5)
         elif item not in unseen_instances:
             seen_test_h5.append(test_h5)
-
     if domain == 'seen':
         test_group = seen_test_h5
     else:

@@ -60,6 +60,8 @@ if __name__ == "__main__":
     parser.add_argument("--viz", action="store_true", help="whether to viz")
     args = parser.parse_args()
 
+    prediction_dict = {}
+
     infos = global_info()
     my_dir = infos.base_path
     dset_info = infos.datasets[args.item]
@@ -124,6 +126,7 @@ if __name__ == "__main__":
     dist_err_all = []
     for i in range(len(basenames["nonlinear"])):
         # for i in range(5):
+        prediction_dict[basenames["nonlinear"][i]] = {}
         try:
             basename = basenames["nonlinear"][i]
             print("\n Checking {}th data point: {}".format(i, basename))
@@ -205,7 +208,7 @@ if __name__ == "__main__":
 
             joints = {"gt": [], "pred": []}
             print("\n gn space")
-            for j in range(1, num_parts):
+            for j in range(num_parts-1):
                 thres_r = 0.2
                 offset = unitvec_pred * (1 - heatmap_pred.reshape(-1, 1)) * thres_r
                 nocs = nocs_pred_final["gn"]
@@ -218,9 +221,11 @@ if __name__ == "__main__":
                 joint["l"] = joint_axis
                 joint["p"] = joint_pt
                 joints["pred"].append(joint)
+                # prediction_dict[basenames["nonlinear"][i]]["joint_pt"] = joint["p"].tolist()
+                # prediction_dict[basenames["nonlinear"][i]]["joint_axis"] = joint["l"].tolist()
                 # plot_arrows(nocs_gt['gn'][idx], [offset[idx]], [[joint_pt.reshape(1,3), joint_axis.reshape(1, 3)]], whole_pts=nocs, title_name='pred joint {}'.format(j))
 
-            for j in range(1, num_parts):
+            for j in range(num_parts-1):
                 thres_r = 0.2
                 offset = unitvec_gt * (1 - heatmap_gt.reshape(-1, 1)) * thres_r
                 nocs = nocs_gt["gn"]
@@ -234,6 +239,8 @@ if __name__ == "__main__":
                 joint["l"] = joint_axis
                 joint["p"] = joint_pt
                 joints["gt"].append(joint)
+                # prediction_dict[basenames["nonlinear"][i]]["joint_pt"] = joint["p"].tolist()
+                # prediction_dict[basenames["nonlinear"][i]]["joint_axis"] = joint["l"].tolist()
                 # plot_arrows(nocs[idx], [offset[idx]], [[joint_pt.reshape(1,3), joint_axis.reshape(1, 3)]], whole_pts=nocs, title_name='gt joint {}'.format(j))
 
             rt_gt = datas["pn_gt"][basename]["rt"]["gt"]
@@ -250,7 +257,7 @@ if __name__ == "__main__":
             # transform joint pts to part NOCS space, we use base as the platform
             t_joints = {"gt": [], "pred": []}
             print("\n camera space")
-            for j in range(1, num_parts):
+            for j in range(num_parts-1):
                 s2 = st_dict["scale"][0]
                 t2 = st_dict["translation"][0]
                 t_joint_pt = joints["pred"][j - 1]["p"] * s2 + t2
@@ -258,10 +265,14 @@ if __name__ == "__main__":
                 joint["p"] = np.dot(s[0] * t_joint_pt.reshape(1, 3), r[0].T) + t[0]
                 joint["l"] = np.dot(joints["pred"][j - 1]["l"].reshape(1, 3), r[0].T)
                 print("pred joint pt: ", joint["p"], "joint axis: ", joint["l"])
+                prediction_dict[basenames["nonlinear"][i]]["joint_pt"] = joint["p"].tolist()
+                prediction_dict[basenames["nonlinear"][i]]["joint_axis"] = joint["l"].tolist()
+                prediction_dict[basenames["nonlinear"][i]]["transform"] = rt_g[0].tolist()
+                prediction_dict[basenames["nonlinear"][i]]["scale"] = s_g[0].tolist()
                 t_joints["pred"].append(joint)
                 # plot_arrows(nocs_pred_final['gn'][idx], [offset[idx]], [[joint['p'].reshape(1,3), joint['l'].reshape(1, 3)]], whole_pts=input_pts, title_name='camera space: pred joint {}'.format(j))
 
-            for j in range(1, num_parts):
+            for j in range(num_parts-1):
                 t_joint_pt = joints["gt"][j - 1]["p"]
                 joint = {}
                 joint["p"] = (
@@ -283,7 +294,7 @@ if __name__ == "__main__":
             # start evaluation
             angle_err = []
             dist_err = []
-            for j in range(1, num_parts):
+            for j in range(num_parts-1):
                 r_diff = axis_diff_degree(
                     t_joints["gt"][j - 1]["l"], t_joints["pred"][j - 1]["l"]
                 )
@@ -300,12 +311,17 @@ if __name__ == "__main__":
                 angle_err_all.append(angle_err)
                 dist_err_all.append(dist_err)
         except:
+            print("ERROR!!!!")
             pass
     r_diff_arr = np.array(angle_err_all)  # num * k
     t_diff_arr = np.array(dist_err_all)  # num * k
     r_diff_arr[np.where(np.isnan(r_diff_arr))] = 0
     t_diff_arr[np.where(np.isnan(t_diff_arr))] = 0
     print(r_diff_arr.shape, t_diff_arr.shape, num_parts)
+    
+    with open("predictions.json", "w+") as f:
+        json.dump(prediction_dict, f, indent=4)
+
     for k in range(num_parts - 1):
         print(
             "joint {} with mean angle error {} degrees, mean dist {}".format(

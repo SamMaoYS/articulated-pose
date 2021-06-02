@@ -283,6 +283,8 @@ if __name__ == "__main__":
                     joints["gt"][j - 1]["l"].reshape(1, 3), rt_g[0][:3, :3].T
                 )
                 print("gt joint pt: ", joint["p"], "joint axis: ", joint["l"])
+                prediction_dict[basenames["nonlinear"][i]]["joint_pt_gt"] = joint["p"].tolist()
+                prediction_dict[basenames["nonlinear"][i]]["joint_axis_gt"] = joint["l"].tolist()
                 t_joints["gt"].append(joint)
                 # plot_arrows(nocs_gt['gn'][idx], [offset[idx]], [[joint['p'].reshape(1,3), joint['l'].reshape(1, 3)]], whole_pts=input_pts, title_name='camera space: gt joint {}'.format(j))
 

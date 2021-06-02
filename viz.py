@@ -96,6 +96,11 @@ if __name__ == "__main__":
     for key, joint in predictions.items():
         joint_pt = np.asarray(joint["joint_pt"][0])
         joint_axis = np.asarray(joint["joint_axis"][0])
+
+        joint_pt_gt = np.asarray(joint["joint_pt_gt"][0])
+        joint_axis_gt = np.asarray(joint["joint_axis_gt"][0])
+
+        print(key)
         # joint_axis /= np.linalg.norm(joint_axis)
         print(joint_pt)
         img_id, pose_id, view_id = key.split('_')
@@ -104,6 +109,7 @@ if __name__ == "__main__":
         yaml_path = os.path.join(basepath, "gt.yml")
 
         img = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         depth = np.array(h5py.File(os.path.join(basepath, "depth", view_id+".h5"), "r")["data"])
         with open(yaml_path, "r") as f:
             meta_instance = yaml.load(f, Loader=yaml.Loader)
@@ -137,6 +143,7 @@ if __name__ == "__main__":
         projected_map = np.stack(
             [xv * w_channel, yv * w_channel, depth, w_channel]
         ).transpose([1, 2, 0])
+        # y, z, x, w
         projected_map1 = np.stack(
             [xv * w_channel, yv1 * w_channel, depth, w_channel]
         ).transpose([1, 2, 0])
@@ -173,23 +180,45 @@ if __name__ == "__main__":
         # world_3d = np.dot(np.linalg.inv(view_mat), cam_3d)
         # world_3d /= world_3d[-1, :]
 
-        arrow = get_arrow(joint_pt+joint_axis, joint_pt)
+        joint_axis_2 = joint_axis / np.linalg.norm(joint_axis)
+        joint_axis_gt_2 = joint_axis_gt / np.linalg.norm(joint_axis_gt)
+        angle = np.abs(np.dot(joint_axis_2, joint_axis_gt_2))
+        if angle > 1.0:
+            angle = 1.0
+        angle = np.arccos(angle) * 180/np.pi
+        print(angle)
+        _COLORS_LEVEL = {0: np.array([0, 255, 0])/255, 1: np.array([255, 128, 0])/255, 2: np.array([255, 0, 0])/255}
+        if angle < 2.0:
+            colo = _COLORS_LEVEL[0]
+        elif angle >= 2.0 and angle < 10:
+            colo = _COLORS_LEVEL[1]
+        elif angle >= 10.0:
+            colo = _COLORS_LEVEL[2]
+        arrow = get_arrow(joint_pt+joint_axis, joint_pt, colo)
 
         convention = np.asarray([[-1, 0, 0], [0,1, 0], [0,0,-1]])
         trans = np.asarray([[1, 0, 0], [0,0,-1], [0,1,0]])
         trans = np.dot(convention, np.linalg.inv(trans))
 
         o3d_vertices = o3d.utility.Vector3dVector(cloud_cam_real[:, :3])
+
+        colors = img[mask]
+        o3d_colors = o3d.utility.Vector3dVector(colors/255.0)
+
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d_vertices
+        pcd.colors = o3d_colors
         vis = o3d.visualization.Visualizer()
         vis.create_window(window_name=f'{key}', width=640, height=640, visible=True)
+        opt = vis.get_render_option()
+        opt.background_color = np.asarray([0.5, 0.5, 0.5])
         vis.add_geometry(pcd)
-        vis.add_geometry(o3d.geometry.create_mesh_coordinate_frame())
+        # vis.add_geometry(o3d.geometry.create_mesh_coordinate_frame())
         vis.add_geometry(arrow)
         vis.run()
         vis.destroy_window()
         del vis
+        del opt
         
 
         # print(origin_2d)

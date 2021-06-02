@@ -141,3 +141,7 @@ cython_debug/
 dataset/
 *.so
 *.o
+*.png
+Screen*.json
+lib/
+results/

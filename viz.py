@@ -9,6 +9,17 @@ import h5py
 import open3d as o3d
 import pdb
 
+def fix_coordinate():
+    trans = np.array([[  0.0000000,  0.0000000, -1.0000000],
+    [-1.0000000,  0.0000000, -0.0000000],
+    [0.0000000,  1.0000000,  0.0000000]])
+
+    trans2 = np.array([[-1.0000000,  0.0000000,  0.0000000],
+    [0.0000000,  1.0000000,  0.0000000],
+    [-0.0000000,  0.0000000, -1.0000000]])
+
+    trans = np.dot(trans, trans2)
+    return trans
 
 def get_arrow(origin=[0, 0, 0], end=None, color=[0, 0, 0]):
     """
@@ -18,18 +29,9 @@ def get_arrow(origin=[0, 0, 0], end=None, color=[0, 0, 0]):
         - end (): End point. [x,y,z]
         - vec (): Vector. [i,j,k]
     """
-    # origin[0], origin[1], origin[2] = origin[1], origin[2], origin[0]
-    # end[0], end[1], end[2] = end[1], end[2], end[0]
 
-    # trans = np.array([[  0.0000000,  0.0000000, -1.0000000],
-    # [-1.0000000,  0.0000000, -0.0000000],
-    # [0.0000000,  1.0000000,  0.0000000]])
+    # trans = fix_coordinate()
 
-    # trans2 = np.array([[-1.0000000,  0.0000000,  0.0000000],
-    # [0.0000000,  1.0000000,  0.0000000],
-    # [-0.0000000,  0.0000000, -1.0000000]])
-
-    # trans = np.dot(trans, trans2)
     # origin = np.dot(origin, trans)
     # end = np.dot(end, trans)
 
@@ -94,15 +96,14 @@ if __name__ == "__main__":
 
     max_x, max_y = 1000, 10000
     for key, joint in predictions.items():
-        joint_pt = np.asarray(joint["joint_pt"][0])
-        joint_axis = np.asarray(joint["joint_axis"][0])
+        joint_pt = np.asarray(joint["joint_pt"])
+        joint_axis = np.asarray(joint["joint_axis"])
 
-        joint_pt_gt = np.asarray(joint["joint_pt_gt"][0])
-        joint_axis_gt = np.asarray(joint["joint_axis_gt"][0])
+        joint_pt_gt = np.asarray(joint["joint_pt_gt"])
+        joint_axis_gt = np.asarray(joint["joint_axis_gt"])
 
         print(key)
-        # joint_axis /= np.linalg.norm(joint_axis)
-        print(joint_pt)
+        
         img_id, pose_id, view_id = key.split('_')
         basepath = os.path.join(dataset_path, img_id, pose_id)
         img_path = os.path.join(basepath, "rgb", view_id+".png")
@@ -114,19 +115,16 @@ if __name__ == "__main__":
         with open(yaml_path, "r") as f:
             meta_instance = yaml.load(f, Loader=yaml.Loader)
 
-        # view_mat = np.asarray(meta_instance["frame_"+view_id]['viewMat']).reshape((4,4)).transpose()
-        view_mat = np.asarray(joint["transform"])
+        view_mat = np.asarray(meta_instance["frame_"+view_id]['viewMat']).reshape((4,4)).transpose()
+        jt_rotation = np.asarray(joint["rotation"])
+        jt_translation = np.asarray(joint["translation"])
+        jt_scale = np.asarray(joint["scale"])
+        jt_transform = np.identity(4)
+        jt_transform[:3, :3] = jt_rotation
+        jt_transform[:3, 3] = jt_translation
+        jt_transform[:3, :3] *= jt_scale
         projection = np.asarray(meta_instance["frame_"+view_id]['projMat']).reshape((4,4)).transpose()
-        # origin_2d = np.dot(projection, np.concatenate([joint_pt, [1.0]]))
-        # origin_2d /= origin_2d[-1]
-        # origin_2d[0], origin_2d[1] = (origin_2d[0]+1.0)/2*img.shape[1], (origin_2d[1]+1.0)/2*img.shape[0]
-        # origin_2d = origin_2d[:2].astype(int)
 
-        # end_2d = np.dot(projection, np.concatenate([joint_pt+joint_axis, [1.0]]))
-        # end_2d /= end_2d[-1]
-        # end_2d[0], end_2d[1] = (end_2d[0]+1.0)/2*img.shape[1], (end_2d[1]+1.0)/2*img.shape[0]
-        # end_2d = end_2d[:2].astype(int)
-        # print(projection)
         mask = depth > 0
         nx, ny = (img.shape[1], img.shape[0])
         x = np.linspace(-1, 1, nx)
@@ -134,51 +132,21 @@ if __name__ == "__main__":
         y1 = np.linspace(-1, 1, ny)
         xv, yv = np.meshgrid(x, y)
         xv1, yv1 = np.meshgrid(x, y1)
-        # xv = xv[mask]
-        # yv = yv[mask]
-        # depth = depth[mask]*1000
-        # img_3d = np.stack([xv, yv, depth, np.ones_like(depth)], axis=1).reshape((-1, 4)).transpose()
+        xv = xv[mask]
+        yv = yv[mask]
+        depth = depth[mask]
 
-        w_channel = -depth
-        projected_map = np.stack(
-            [xv * w_channel, yv * w_channel, depth, w_channel]
-        ).transpose([1, 2, 0])
-        # y, z, x, w
-        projected_map1 = np.stack(
-            [xv * w_channel, yv1 * w_channel, depth, w_channel]
-        ).transpose([1, 2, 0])
-
-        projected_points = projected_map[mask]
-        depth_channel = -projected_points[:, 3:4]
-        cloud_cam = np.dot(
-            projected_points[:, 0:2] - np.dot(depth_channel, projection[0:2, 2:3].T),
-            np.linalg.pinv(projection[:2, :2].T),
-        )
-
-        projected_points1 = projected_map1[mask]
-        projected_points1 = np.reshape(projected_points1, [-1, 4])
-        cloud_cam_real = np.dot(
-            projected_points1[:, 0:2] - np.dot(depth_channel, projection[0:2, 2:3].T),
-            np.linalg.pinv(projection[:2, :2].T),
-        )
-        cloud_cam_real = np.concatenate((cloud_cam_real, depth_channel), axis=1)
-
-        cloud_cam = np.concatenate((cloud_cam, depth_channel), axis=1)
-        cloud_cam_full = np.concatenate(
-            (cloud_cam, np.ones((cloud_cam.shape[0], 1))), axis=1
-        )
-
-        # modify, todo
-        camera_pose_mat = np.linalg.pinv(view_mat.T)
-        camera_pose_mat[:3, :] = -camera_pose_mat[:3, :]
-        cloud_world = np.dot(cloud_cam_full, camera_pose_mat)
-
-        print(cloud_cam_full.shape)
+        z_buffer = -depth * projection[2,2] + projection[2,3]
+        w_buffer = -depth * projection[3,2] + projection[3,3]
+        z_buffer /= w_buffer
+        img_3d = np.stack([xv, yv, z_buffer, np.ones_like(z_buffer)], axis=1).reshape((-1, 4)).transpose()
         
-        # cam_3d = np.dot(np.linalg.inv(projection), img_3d)
-        # cam_3d /= cam_3d[-1, :]
-        # world_3d = np.dot(np.linalg.inv(view_mat), cam_3d)
-        # world_3d /= world_3d[-1, :]
+        cam_3d = np.dot(np.linalg.inv(projection), img_3d)
+        cam_3d /= cam_3d[-1, :]
+        world_3d = np.dot(np.linalg.inv(view_mat), cam_3d)
+        world_3d /= world_3d[-1, :]
+        cam_3d = cam_3d.transpose()
+        world_3d = world_3d.transpose()
 
         joint_axis_2 = joint_axis / np.linalg.norm(joint_axis)
         joint_axis_gt_2 = joint_axis_gt / np.linalg.norm(joint_axis_gt)
@@ -186,47 +154,72 @@ if __name__ == "__main__":
         if angle > 1.0:
             angle = 1.0
         angle = np.arccos(angle) * 180/np.pi
-        print(angle)
+        
         _COLORS_LEVEL = {0: np.array([0, 255, 0])/255, 1: np.array([255, 128, 0])/255, 2: np.array([255, 0, 0])/255}
         if angle < 2.0:
-            colo = _COLORS_LEVEL[0]
+            color = _COLORS_LEVEL[0]
         elif angle >= 2.0 and angle < 10:
-            colo = _COLORS_LEVEL[1]
+            color = _COLORS_LEVEL[1]
         elif angle >= 10.0:
-            colo = _COLORS_LEVEL[2]
-        arrow = get_arrow(joint_pt+joint_axis, joint_pt, colo)
+            color = _COLORS_LEVEL[2]
+        
+        joint_transform = np.linalg.inv(jt_transform)
+        joint_pt = np.dot(joint_transform, np.concatenate([joint_pt, [1]]))
+        joint_axis = joint_axis / np.linalg.norm(joint_axis)
+        joint_axis = np.dot(joint_transform[:3, :3], joint_axis)
+        joint_pt = joint_pt[:3]
+        end_pt = joint_pt + joint_axis
 
-        convention = np.asarray([[-1, 0, 0], [0,1, 0], [0,0,-1]])
-        trans = np.asarray([[1, 0, 0], [0,0,-1], [0,1,0]])
-        trans = np.dot(convention, np.linalg.inv(trans))
+        trans = fix_coordinate()
+        joint_pt = np.dot(joint_pt, trans)
+        end_pt = np.dot(end_pt, trans)
 
-        o3d_vertices = o3d.utility.Vector3dVector(cloud_cam_real[:, :3])
+        joint_pt = np.dot(view_mat, np.concatenate([joint_pt, [1]]))
+        joint_pt = joint_pt[:3]
+        end_pt = np.dot(view_mat, np.concatenate([end_pt, [1]]))
+        end_pt = end_pt[:3]
+
+        arrow = get_arrow(joint_pt, end_pt, color)
+
+        o3d_vertices = o3d.utility.Vector3dVector(cam_3d[:, :3])
 
         colors = img[mask]
         o3d_colors = o3d.utility.Vector3dVector(colors/255.0)
 
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d_vertices
-        pcd.colors = o3d_colors
-        vis = o3d.visualization.Visualizer()
-        vis.create_window(window_name=f'{key}', width=640, height=640, visible=True)
-        opt = vis.get_render_option()
-        opt.background_color = np.asarray([0.5, 0.5, 0.5])
-        vis.add_geometry(pcd)
-        # vis.add_geometry(o3d.geometry.create_mesh_coordinate_frame())
-        vis.add_geometry(arrow)
-        vis.run()
-        vis.destroy_window()
-        del vis
-        del opt
-        
+        # pcd = o3d.geometry.PointCloud()
+        # pcd.points = o3d_vertices
+        # pcd.colors = o3d_colors
+        # vis = o3d.visualization.Visualizer()
+        # vis.create_window(window_name=f'{key}', width=640, height=640, visible=True)
+        # opt = vis.get_render_option()
+        # opt.background_color = np.asarray([0.5, 0.5, 0.5])
+        # vis.add_geometry(pcd)
+        # # vis.add_geometry(o3d.geometry.create_mesh_coordinate_frame())
+        # vis.add_geometry(arrow)
+        # vis.run()
+        # vis.destroy_window()
+        # del vis
+        # del opt
 
-        # print(origin_2d)
-        # cv2.circle(img, (origin_2d[0], origin_2d[1]), 5, (0,0,255), 2)
-        # cv2.circle(img, (end_2d[0], end_2d[1]), 5, (255,0,0), 2)
-        # cv2.arrowedLine(img, (origin_2d[0], origin_2d[1]), (end_2d[0], end_2d[1]), (1,0,0), 2)
-        # cv2.imshow(f"key", img)
-        # cv2.waitKey(0)
+        ndc_joint_pt = np.dot(projection, np.concatenate([joint_pt, [1]]))
+        ndc_joint_pt = ndc_joint_pt / ndc_joint_pt[-1]
+
+        ndc_end_pt = np.dot(projection, np.concatenate([end_pt, [1]]))
+        ndc_end_pt = ndc_end_pt / ndc_end_pt[-1]
+        
+        ndc_joint_pt[1] = -ndc_joint_pt[1]
+        sx, sy = ((ndc_joint_pt[:2]+1.0)/2.0 * img.shape[0]).astype(int)
+        ndc_end_pt[1] = -ndc_end_pt[1]
+        ex, ey = ((ndc_end_pt[:2]+1.0)/2.0 * img.shape[0]).astype(int)
+
+        print(sx, sy)
+        
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        cv2.circle(img, (sx, sy), 5, (0,0,255), 2)
+        cv2.circle(img, (ex, ey), 5, (255,0,0), 2)
+        cv2.arrowedLine(img, (sx, sy), (ex, ey), (255,0,0), 2)
+        cv2.imshow(f"key", img)
+        cv2.waitKey(0)
         
 
 

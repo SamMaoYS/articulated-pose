@@ -94,7 +94,7 @@ if __name__ == "__main__":
     dataset_path = "dataset/sapien/render/drawer"
     predictions = read_json(filename)
 
-    max_x, max_y = 1000, 10000
+    joints = {}
     for key, joint in predictions.items():
         joint_pt = np.asarray(joint["joint_pt"])
         joint_axis = np.asarray(joint["joint_axis"])
@@ -201,6 +201,13 @@ if __name__ == "__main__":
         # del vis
         # del opt
 
+        joints[key] = {}
+
+        joints[key]["start_pt"] = joint_pt.tolist()
+        joints[key]["end_pt"] = end_pt.tolist()
+        joints[key]["axis"] = ((end_pt - joint_pt) / np.linalg.norm((end_pt - joint_pt))).tolist()
+        joints[key]["error"] = float(angle)
+
         ndc_joint_pt = np.dot(projection, np.concatenate([joint_pt, [1]]))
         ndc_joint_pt = ndc_joint_pt / ndc_joint_pt[-1]
 
@@ -208,18 +215,24 @@ if __name__ == "__main__":
         ndc_end_pt = ndc_end_pt / ndc_end_pt[-1]
         
         ndc_joint_pt[1] = -ndc_joint_pt[1]
-        sx, sy = ((ndc_joint_pt[:2]+1.0)/2.0 * img.shape[0]).astype(int)
+        sx, sy = ((ndc_joint_pt[:2]+1.0)/2.0 * img.shape[0]).astype(int).tolist()
         ndc_end_pt[1] = -ndc_end_pt[1]
-        ex, ey = ((ndc_end_pt[:2]+1.0)/2.0 * img.shape[0]).astype(int)
+        ex, ey = ((ndc_end_pt[:2]+1.0)/2.0 * img.shape[0]).astype(int).tolist()
+
+        joints[key]["2d_start"] = [sx, sy]
+        joints[key]["2d_end"] = [ex, ey]
 
         print(sx, sy)
         
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        cv2.circle(img, (sx, sy), 5, (0,0,255), 2)
-        cv2.circle(img, (ex, ey), 5, (255,0,0), 2)
-        cv2.arrowedLine(img, (sx, sy), (ex, ey), (255,0,0), 2)
-        cv2.imshow(f"key", img)
-        cv2.waitKey(0)
+        # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        # cv2.circle(img, (sx, sy), 5, (0,0,255), 2)
+        # cv2.circle(img, (ex, ey), 5, (255,0,0), 2)
+        # cv2.arrowedLine(img, (sx, sy), (ex, ey), (255,0,0), 2)
+        # cv2.imshow(f"key", img)
+        # cv2.waitKey(0)
+    
+    with open("prior_pred.json", "w+") as f:
+        json.dump(joints, f, indent=4)
         
 
 

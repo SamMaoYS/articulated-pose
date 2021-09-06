@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-CUDA_DIR=/usr/local/cuda
-CONDA_ENV_DIR=/home/sam/anaconda3/envs/ansch
+CUDA_DIR=/localhome/hja40/Desktop/cuda-9.0
+CONDA_ENV_DIR=/localhome/hja40/miniconda3/envs/articulated-pose
 nvcc_bin=$CUDA_DIR/bin/nvcc
 
 cuda_include_dir=$CUDA_DIR/include

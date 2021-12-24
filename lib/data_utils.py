@@ -559,7 +559,7 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         tight_w = max(part_gts[:, 0]) - min(part_gts[:, 0])
         tight_l = max(part_gts[:, 1]) - min(part_gts[:, 1])
         tight_h = max(part_gts[:, 2]) - min(part_gts[:, 2])
-        corner_pts[j] = np.amin(part_gts, axis=1)
+        # corner_pts[j] = np.amin(part_gts, axis=1)
         norm_factor = np.sqrt(1) / np.sqrt(tight_w**2 + tight_l**2 + tight_h**2)
         norm_factors.append(norm_factor)
         corner_pt_left = np.amin(part_gts, axis=0, keepdims=True)

@@ -417,8 +417,8 @@ if __name__ == "__main__":
         _USE_GUI = False
 
     num_render = int(args.num)  # viewing angles
-    cnt_artic = int(args.cnt)
-    cam_dis = float(args.dis)  # articulation change
+    cnt_artic = int(args.cnt)   # articulation change
+    cam_dis = float(args.dis) 
     name_dataset = args.dataset
 
     data_root = my_dir + "/dataset/" + name_dataset

@@ -230,7 +230,7 @@ class PoseDataset:
                     urdf_dict["joint"]["xyz"][link + 1]
                 )  # todo, accumulate joints pffsets != link offsets
             else:
-                parts_urdf_pos[link] = -np.array(urdf_dict["link"]["xyz"][link + 1][0])
+                parts_urdf_pos[link] = np.array(urdf_dict["link"]["xyz"][link + 1][0])
             parts_urdf_orn[link] = np.array(urdf_dict["link"]["rpy"][link + 1][0])
 
         for k in range(num_parts):

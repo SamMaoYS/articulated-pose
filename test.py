@@ -142,7 +142,6 @@ class Dataset:
                 self.data_matrix = {}
                 for key in data[0].keys():
                     trailing_ones = np.full([len(data[0][key].shape)], 1, dtype=int)
-                    # expands is not necessary, the function can automatically deal with it
                     self.data_matrix[key] = np.tile(np.expand_dims(np.zeros_like(data[0][key]), axis=0), [self.n_data, *trailing_ones])
             for key in data[0].keys():
                 try:
@@ -177,7 +176,7 @@ class Dataset:
             offsets     = None
             for item in all_items:
                 if self.name_dset == 'sapien':
-                    path_urdf = self.root_dir + '/urdf/' + '/' + obj_category + '/' + item
+                    path_urdf = self.root_dir + '/objects/' + '/' + obj_category + '/' + item
                     urdf_ins   = get_urdf_mobility(path_urdf)
                 elif self.name_dset == 'shape2motion':
                     path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
@@ -234,7 +233,7 @@ class Dataset:
                 path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
                 urdf_ins   = get_urdf("{}/{}".format(path_urdf, item))
             elif self.name_dset == 'sapien':
-                path_urdf = self.root_dir + '/urdf/' + '/' + obj_category + '/' + item
+                path_urdf = self.root_dir + '/objects/' + '/' + obj_category + '/' + item
                 urdf_ins   = get_urdf_mobility(path_urdf)
             else:
                 path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
@@ -611,8 +610,7 @@ class Dataset:
             Pc = f['gt_coords'][str(group[0])][()][:, :3]
             for i in range(1, len(group)):
                 Pc = np.concatenate((Pc, f['gt_coords'][str(group[i])][()][:, :3]), axis=0)
-            # parts_gts[idx] = Pc - np.array(link_xyz[idx][0]).reshape(1, 3) # pts in canonical coords
-            parts_gts[idx] = Pc
+            parts_gts[idx] = Pc - np.array(link_xyz[idx][0]).reshape(1, 3) # pts in canonical coords
             parts_parent_joint[idx] = group[0] # first element as child, assume link and its parent joint have same index
             parts_child_joint[idx]  = [ind for ind, x in enumerate(joint_parent) if x-1 == group[-1]] # in a group, we may use the last element to find joint that part serves as parent
 
